@@ -26,6 +26,17 @@ exports.handler = async function(event, context) {
 
   try {
     const response = await makeRequest(targetUrl, event.httpMethod, authHeader, event.body);
+    
+    // Try to parse and re-stringify to ensure valid JSON
+    let responseBody = response.body;
+    try {
+      const parsed = JSON.parse(responseBody);
+      responseBody = JSON.stringify(parsed);
+    } catch(e) {
+      // If not valid JSON, wrap it
+      responseBody = JSON.stringify({ message: responseBody, statusCode: response.statusCode });
+    }
+
     return {
       statusCode: response.statusCode,
       headers: {
@@ -34,7 +45,7 @@ exports.handler = async function(event, context) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-clover-env',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       },
-      body: response.body,
+      body: responseBody,
     };
   } catch (error) {
     return {
@@ -68,4 +79,3 @@ function makeRequest(url, method, authHeader, body) {
     req.end();
   });
 }
-     
