@@ -234,6 +234,8 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 .pill-rescheduled{background:var(--teal-pale);color:var(--teal-dark);}
 .pill-cancelled{background:#f0f0f0;color:#888;}
 .pill-waitlist{background:#f0e0f0;color:#7a007a;}
+.pill-completed{background:#e8f5ee;color:var(--success);}
+.pill-printed{background:#e8f0fe;color:#1a4a9e;}
 
 /* DELIVERY TICKET */
 .ticket{background:#fff;border:2px dashed var(--charcoal);border-radius:var(--radius);padding:1.5rem;}
@@ -278,7 +280,7 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 <header>
   <div class="header-top">
     <div class="logo-area">
-      <div class="logo-icon">🌿</div>
+      <div class="logo-icon" id="header-logo">🌿</div>
       <div>
         <div class="logo-text">Carters Country Corner</div>
         <div class="logo-sub">Local Delivery Ordering</div>
@@ -293,6 +295,7 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
     <button class="tab-btn active" id="tbtn-settings" onclick="switchTab('settings',this)">⚙ Setup</button>
     <button class="tab-btn" id="tbtn-zip" onclick="switchTab('zip',this)">📍 Delivery Zones</button>
     <button class="tab-btn" id="tbtn-order" onclick="switchTab('order',this)">🛒 Place Order</button>
+    <button class="tab-btn" id="tbtn-schedule" onclick="switchTab('schedule',this)">📅 Schedule</button>
     <button class="tab-btn" id="tbtn-history" onclick="switchTab('history',this)">👤 Customers</button>
     <button class="tab-btn" id="tbtn-dashboard" onclick="switchTab('dashboard',this)">📋 Orders <span class="badge" id="pending-badge" style="display:none">0</span></button>
   </nav>
@@ -323,12 +326,32 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
   </div>
 
   <div class="card">
-    <div class="card-title">Store Settings</div>
+    <div class="card-title">Store Settings & Branding</div>
     <div class="row2">
       <div class="field"><label>Store Name</label><input id="storeName" type="text" placeholder="Carters Country Corner" oninput="saveSetting('storeName',this.value)"/></div>
       <div class="field"><label>Order Prefix</label><input id="orderPrefix" type="text" placeholder="DELIVERY-ORDER" oninput="saveSetting('orderPrefix',this.value)"/></div>
     </div>
     <div class="field"><label>Tax Rate (%)</label><input id="taxRate" type="number" placeholder="6.0" min="0" max="30" step="0.01" oninput="saveSetting('taxRate',this.value)"/></div>
+    <div class="field">
+      <label>Store Address (used for delivery radius calculations)</label>
+      <input id="storeAddress" type="text" placeholder="840 Butts Station Rd, Chesapeake VA 23320" oninput="saveSetting('storeAddress',this.value)"/>
+    </div>
+    <div class="field">
+      <label>Store ZIP Code *</label>
+      <input id="storeZip" type="text" maxlength="5" placeholder="23320" oninput="saveSetting('storeZip',this.value)"/>
+      <div class="sm" style="margin-top:4px;">Used to calculate your 40-mile delivery radius.</div>
+    </div>
+    <hr class="soft"/>
+    <div class="section-label" style="font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:.75rem;">Logo / Branding</div>
+    <div class="flex" style="gap:1rem;align-items:center;margin-bottom:.75rem;">
+      <div id="logo-preview" style="width:60px;height:60px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;overflow:hidden;">🌿</div>
+      <div style="flex:1;">
+        <label>Upload Logo</label>
+        <input type="file" id="logo-upload" accept="image/*" onchange="uploadLogo(this)" style="font-size:.8rem;"/>
+        <div class="sm" style="margin-top:3px;">Replaces the 🌿 icon in the header. Recommended: square image, min 100×100px.</div>
+      </div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="removeLogo()">Remove Logo</button>
   </div>
 
   <div class="card">
@@ -559,6 +582,26 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
   </div>
 </div>
 
+<!-- ══ SCHEDULE VIEW ══ -->
+<div id="panel-schedule" class="panel">
+  <div class="hero"><h1>Delivery <span class="hero-teal">Schedule</span></h1><p>View all delivery slots, capacity, and upcoming orders at a glance.</p></div>
+  <div class="card mb">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+      <div class="card-title" style="margin:0;border:none;padding:0">3-Week View</div>
+      <div class="cal-nav">
+        <button class="btn btn-outline btn-sm" onclick="schedCalNav(-1)">← Prev</button>
+        <button class="btn btn-outline btn-sm" onclick="schedCalNav(1)">Next →</button>
+      </div>
+    </div>
+    <div class="cal-week-label" id="sched-week-label" style="margin-bottom:1rem;"></div>
+    <div id="sched-calendar" class="cal-grid"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Orders for Selected Day</div>
+    <div id="sched-day-orders"><div class="empty"><div class="empty-icon">📅</div><p>Click a day above to see orders.</p></div></div>
+  </div>
+</div>
+
 <!-- ══ CUSTOMER HISTORY ══ -->
 <div id="panel-history" class="panel">
   <div class="hero"><h1>Customer <span class="hero-teal">History</span></h1><p>Look up customers, delivery history, and job sites by phone number or name.</p></div>
@@ -577,9 +620,9 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
   <div class="hero"><h1>Order <span class="hero-teal">Dashboard</span></h1><p>Manage incoming delivery orders. Confirm, schedule, and track all deliveries.</p></div>
   <div class="stats">
     <div class="stat"><div class="stat-label">Total</div><div class="stat-val dark" id="stat-total">0</div></div>
-    <div class="stat"><div class="stat-label">Awaiting</div><div class="stat-val gold" id="stat-pending">0</div></div>
+    <div class="stat"><div class="stat-label">Active</div><div class="stat-val gold" id="stat-pending">0</div></div>
     <div class="stat"><div class="stat-label">Confirmed</div><div class="stat-val teal" id="stat-confirmed">0</div></div>
-    <div class="stat"><div class="stat-label">Charged</div><div class="stat-val teal" id="stat-charged">0</div></div>
+    <div class="stat"><div class="stat-label">Completed</div><div class="stat-val teal" id="stat-charged">0</div></div>
     <div class="stat"><div class="stat-label">Revenue</div><div class="stat-val dark" id="stat-revenue">$0</div></div>
   </div>
   <div class="card">
@@ -591,11 +634,12 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
           <option value="pending">Awaiting Confirm</option>
           <option value="waitlist">Waitlist</option>
           <option value="confirmed">Confirmed</option>
-          <option value="charged">Charged</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
           <option value="rescheduled">Rescheduled</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <button class="btn btn-outline btn-sm" onclick="clearOrders()">Clear All</button>
+
       </div>
     </div>
     <div id="orders-wrap"><div class="empty"><div class="empty-icon">📋</div><p>No orders yet.</p></div></div>
@@ -652,7 +696,7 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
     <div id="confirm-summary"></div>
     <div class="modal-acts">
       <button class="btn btn-outline" onclick="closeModal('modal-confirm')">Back</button>
-      <button class="btn btn-dark" id="confirm-btn" onclick="sendToClover()">Complete Order</button>
+      <button class="btn btn-dark" id="confirm-btn" onclick="sendToClover()">Authorize</button>
     <p style="text-align:center;font-size:.75rem;color:#888;margin-top:.5rem;">🔒 Secured &amp; powered by Clover POS</p>
     </div>
   </div>
@@ -849,6 +893,24 @@ function load(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
+  // ── OAUTH GATE: Block direct URL access ──
+  const gateParams=new URLSearchParams(window.location.search);
+  const gateHash=new URLSearchParams(window.location.hash.replace('#',''));
+  const hasMerchant=gateParams.get('merchant_id')||gateHash.get('merchant_id');
+  const hasToken=gateHash.get('access_token');
+  const hasSavedCreds=localStorage.getItem('ccc_v3')&&JSON.parse(localStorage.getItem('ccc_v3')||'{}')?.settings?.merchantId;
+  if(!hasMerchant&&!hasToken&&!hasSavedCreds){
+    document.body.innerHTML=`
+      <div style="min-height:100vh;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-family:'Lato',sans-serif;">
+        <div style="text-align:center;color:#fff;padding:3rem 2rem;max-width:400px;">
+          <div style="font-size:3rem;margin-bottom:1.5rem;">🌿</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;margin-bottom:1rem;">Retail Local Haul</div>
+          <div style="color:rgba(255,255,255,.6);font-size:.95rem;line-height:1.6;margin-bottom:2rem;">This application is only accessible through the Clover App Market.<br><br>Please launch from your Clover dashboard.</div>
+          <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:1rem;font-size:.8rem;color:rgba(255,255,255,.4);">GAP Bridge Apps · Powered by Clover POS</div>
+        </div>
+      </div>`;
+    return;
+  }
   load();
   // Auto-fill from OAuth redirect URL
   const params=new URLSearchParams(window.location.search);
@@ -856,6 +918,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(params.get('merchant_id')&&!state.settings.merchantId){state.settings.merchantId=params.get('merchant_id');save();}
   if(hash.get('access_token')&&!state.settings.apiToken){state.settings.apiToken=hash.get('access_token');save();}
   applySettings();
+  applyLogo();
   renderZipTable();
   renderCart();
   renderCalendar();
@@ -894,13 +957,14 @@ function closeModal(id){el(id).classList.remove('open');}
 function toggleCallText(){el('call-before-text').style.display=el('chargeNotif').value==='call'?'block':'none';}
 
 function switchTab(name,btn){
-  ['settings','zip','order','history','dashboard'].forEach(n=>{
+  ['settings','zip','order','schedule','history','dashboard'].forEach(n=>{
     el('panel-'+n).classList.remove('active');
     el('tbtn-'+n).classList.remove('active');
   });
   el('panel-'+name).classList.add('active');
   if(btn)btn.classList.add('active');
-  if(name==='dashboard')renderDashboard();
+  if(name==='dashboard'){if(el('dash-filter'))el('dash-filter').value='active';renderDashboard();}
+  if(name==='schedule'){schedWeekOffset=0;renderScheduleView();}
   if(name==='order'){
     renderCalendar();
     if(!sessionStorage.getItem('sameDayShown'))showSameDayPopup();
@@ -909,7 +973,7 @@ function switchTab(name,btn){
 }
 
 function updateBadge(){
-  const c=state.orders.filter(o=>o.status==='pending'||o.status==='waitlist').length;
+  const c=state.orders.filter(o=>['pending','waitlist','confirmed','rescheduled'].includes(o.status)).length;
   const b=el('pending-badge');b.textContent=c;b.style.display=c>0?'inline':'none';
 }
 
@@ -1100,6 +1164,14 @@ function toggleDeliveryAddr(){
 
 // ZIP LOOKUP with soft warnings
 let currentZipRule=undefined;
+function isNearbyZip(zip){
+  // Check if ZIP is in our Tidewater set OR within reasonable range
+  if(TIDEWATER_ZIPS.has(zip))return true;
+  // If merchant has set a store ZIP, also accept ZIPs starting with same prefix
+  const storeZip=state.settings.storeZip||'23320';
+  const prefix=storeZip.substring(0,3);
+  return zip.startsWith(prefix);
+}
 function lookupZip(zip){
   if(zip.length<5){el('zip-result').className='zip-res hide';currentZipRule=undefined;state.zipOverridden=false;renderCart();return;}
   const rule=state.zipRules.find(z=>z.zip===zip);
@@ -1111,7 +1183,7 @@ function lookupZip(zip){
   } else if(rule&&rule.blocked){
     // Blocked but soft
     showZipWarning(zip,'Please call our office at <strong>(757) 547-0646</strong> for delivery information for your area.');
-  } else if(TIDEWATER_ZIPS.has(zip)){
+  } else if(isNearbyZip(zip)){
     // Not in zones but in Tidewater — soft warning
     showZipWarning(zip,'This ZIP isn\'t in our current delivery zones. Please call our office at <strong>(757) 547-0646</strong> for delivery information.');
   } else {
@@ -1286,6 +1358,7 @@ function renderHistorySearch(query){
   const wrap=el('history-results');
   const q=query.toLowerCase().replace(/\D/g,'').length>0?query.replace(/\D/g,''):query.toLowerCase();
   const isPhone=query.replace(/\D/g,'').length>=4;
+  if(!query){wrap.innerHTML='<div class="empty"><div class="empty-icon">👤</div><p>Search to find a customer.</p></div>';return;}
   const results=Object.entries(state.customers).filter(([phone,cust])=>{
     if(isPhone)return phone.includes(query.replace(/\D/g,''));
     const searchStr=(cust.firstName+' '+cust.lastName+' '+cust.company+' '+cust.billZip+' '+(cust.jobSites||[]).map(j=>j.street+' '+j.zip).join(' ')).toLowerCase();
@@ -1301,7 +1374,7 @@ function renderHistorySearch(query){
     <div class="card" style="margin-bottom:1rem;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem;">
         <div>
-          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;">${cust.firstName} ${cust.lastName}${cust.company?' — '+cust.company:''}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;color:var(--teal-dark);" onclick="openCustomerProfile('${phone}')">${cust.firstName} ${cust.lastName}${cust.company?' — '+cust.company:''} <span style='font-size:.72rem;'>→ New Order</span></div>
           <div class="sm">📞 (${phone.slice(0,3)}) ${phone.slice(3,6)}-${phone.slice(6)} · ${cust.email||'No email'}</div>
           <div class="sm">🏠 ${cust.billStreet||'No address'}, ${cust.billCity||''} ${cust.billZip||''}</div>
         </div>
@@ -1613,7 +1686,7 @@ function submitOrder(){
 }
 
 async function sendToClover(){
-  const btn=el('confirm-btn');btn.disabled=true;btn.textContent='Sending…';
+  const btn=el('confirm-btn');btn.disabled=true;btn.textContent='Processing…';
   const s=state.settings,o=state.pendingOrder;
   const orderId='PENDING-'+Date.now(); // Will be replaced by Clover ID
   const base='/api'; const cloverEnv=s.env;
@@ -1678,7 +1751,7 @@ async function sendToClover(){
   saveCustomerHistory(newOrder);
   save();updateBadge();
   closeModal('modal-confirm');
-  btn.disabled=false;btn.textContent='Authorize & Send to Clover';
+  btn.disabled=false;btn.textContent='Authorize';
 
   // Reset form
   state.cart={};state.selectedSlot=null;currentZipRule=undefined;state.zipOverridden=false;
@@ -1761,8 +1834,42 @@ function cancelOrder(orderId){
 }
 
 // DELIVERY TICKET
+
+// ══ CHARGE NOW — Opens order in Clover ══
+function chargeNowClover(orderId){
+  const o=state.orders.find(x=>x.id===orderId);
+  if(!o)return;
+  const cloverBase=state.settings.env==='production'?'https://www.clover.com':'https://sandbox.dev.clover.com';
+  if(o.cloverOrderId&&o.cloverOrderId!=='null'){
+    window.open(`${cloverBase}/orders/${o.cloverOrderId}`,'_blank');
+  } else {
+    // No Clover ID — open Clover orders page
+    window.open(`${cloverBase}/orders`,'_blank');
+    showToast('Opening Clover — find order for '+o.customer.firstName+' '+o.customer.lastName,'warn');
+  }
+}
+
+// ══ MARK COMPLETE ══
+function markComplete(orderId){
+  const o=state.orders.find(x=>x.id===orderId);
+  if(!o||!confirm('Mark order '+orderId+' as COMPLETED? This confirms delivery and payment were received.'))return;
+  o.status='completed';
+  o.completedAt=new Date().toISOString();
+  save();renderDashboard();updateBadge();
+  showToast('Order '+orderId+' marked complete! ✅');
+}
+
+// ══ UPDATE OPEN TICKET TO TRACK PRINTED STATUS ══
+
 function openTicket(orderId){
   const o=state.orders.find(x=>x.id===orderId);if(!o)return;
+  // Check if already printed
+  if(o.printedAt){
+    if(!confirm('⚠ Ticket already printed on '+new Date(o.printedAt).toLocaleString()+'.\nPrint a duplicate?'))return;
+  } else {
+    o.printedAt=new Date().toISOString();
+    save();renderDashboard();
+  }
   const delivZip=o.customer.delivZip||o.customer.zip||'';
   const notifFlag=o.notificationPref==='call'?
     `<div class="ticket-flag call">📞 CALL BEFORE LOADING<br><span style="font-size:.78rem;font-weight:400;">We'll call you before we load your order. Please be available to answer or we'll change your rotation for the day.</span></div>`:
@@ -1813,15 +1920,17 @@ function renderDashboard(){
   const filter=el('dash-filter')?.value||'all';
   const orders=state.orders;
   el('stat-total').textContent=orders.length;
-  el('stat-pending').textContent=orders.filter(o=>o.status==='pending'||o.status==='waitlist').length;
+  el('stat-pending').textContent=orders.filter(o=>['pending','waitlist','confirmed','rescheduled'].includes(o.status)).length;
   el('stat-confirmed').textContent=orders.filter(o=>o.status==='confirmed').length;
-  el('stat-charged').textContent=orders.filter(o=>o.status==='charged').length;
-  el('stat-revenue').textContent=fmt(orders.filter(o=>o.status==='charged').reduce((s,o)=>s+o.total,0));
-  const filtered=filter==='all'?orders:orders.filter(o=>o.status===filter);
+  el('stat-charged').textContent=orders.filter(o=>o.status==='completed').length;
+  el('stat-revenue').textContent=fmt(orders.filter(o=>o.status==='completed'||o.status==='charged').reduce((s,o)=>s+o.total,0));
+  const filtered=filter==='all'?orders:
+    filter==='active'?orders.filter(o=>!['completed','cancelled'].includes(o.status)):
+    orders.filter(o=>o.status===filter);
   const w=el('orders-wrap');
   if(!filtered.length){w.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>No orders here yet.</p></div>';return;}
-  const pillMap={pending:'pill-pending',confirmed:'pill-confirmed',charged:'pill-charged',rescheduled:'pill-rescheduled',cancelled:'pill-cancelled',waitlist:'pill-waitlist'};
-  const labelMap={pending:'Awaiting Confirm',confirmed:'Confirmed',charged:'Charged',rescheduled:'Rescheduled',cancelled:'Cancelled',waitlist:'Waitlist'};
+  const pillMap={pending:'pill-pending',confirmed:'pill-confirmed',charged:'pill-confirmed',completed:'pill-charged',rescheduled:'pill-rescheduled',cancelled:'pill-cancelled',waitlist:'pill-waitlist'};
+  const labelMap={pending:'Awaiting Confirm',confirmed:'Confirmed',charged:'Confirmed',completed:'Completed',rescheduled:'Rescheduled',cancelled:'Cancelled',waitlist:'Waitlist'};
   w.innerHTML=filtered.map(o=>{
     const delivZip=o.customer.delivZip||o.customer.zip||'';
     const sameAddr=o.customer.sameAddr!==false;
@@ -1847,13 +1956,23 @@ function renderDashboard(){
       acts.push(`<button class="btn btn-outline btn-sm" onclick="cancelOrder('${o.id}')">✕ Cancel</button>`);
     }
     if(o.status==='confirmed'){
-      acts.push(`<button class="btn btn-dark btn-sm" onclick="markCharged('${o.id}')">💳 Mark Charged</button>`);
+      acts.push(`<button class="btn btn-success btn-sm" onclick="chargeNowClover('${o.id}')">💳 Charge Now</button>`);
+      acts.push(`<button class="btn btn-dark btn-sm" onclick="markComplete('${o.id}')">✓ Complete</button>`);
       acts.push(`<button class="btn btn-teal btn-sm" onclick="openTicket('${o.id}')">🖨 Print Ticket</button>`);
       acts.push(`<button class="btn btn-gold btn-sm" onclick="openReschedule('${o.id}')">🔄 Reschedule</button>`);
     }
     if(o.status==='charged')acts.push(`<button class="btn btn-outline btn-sm" onclick="openTicket('${o.id}')">🖨 Ticket</button>`);
+    if(o.status==='completed'){
+      acts.push(`<button class="btn btn-outline btn-sm" onclick="openTicket('${o.id}')">🖨 Ticket</button>`);
+    }
+    if(o.cloverOrderId&&o.cloverOrderId!=='null'){
+      const cloverBase=state.settings.env==='production'?'https://www.clover.com':'https://sandbox.dev.clover.com';
+      acts.push(`<button class="btn btn-outline btn-sm" onclick="window.open('${cloverBase}/orders/${o.cloverOrderId}','_blank')">🍀 Open in Clover</button>`);
+    }
     if(o.status==='rescheduled'){
       acts.push(`<button class="btn btn-success btn-sm" onclick="openConfirmCharge('${o.id}')">✅ Confirm Now</button>`);
+      acts.push(`<button class="btn btn-outline btn-sm" onclick="openEditOrder('${o.id}')">✏️ Edit</button>`);
+      acts.push(`<button class="btn btn-gold btn-sm" onclick="openReschedule('${o.id}')">🔄 Reschedule</button>`);
       acts.push(`<button class="btn btn-outline btn-sm" onclick="cancelOrder('${o.id}')">✕ Cancel</button>`);
     }
     return `<div class="order-card s-${o.status}">
@@ -1881,6 +2000,7 @@ function renderDashboard(){
       ${o.rescheduleNote?`<div class="reschedule-note">🔄 ${o.rescheduleNote}${o.rescheduleDate?' · Est: '+o.rescheduleDate:''}</div>`:''}
       ${o.cloverError?`<div class="danger-txt mt">⚠ Clover push failed: ${o.cloverError}</div>`:''}
       ${o.editedAt?`<div class="sm" style="color:#aaa;">⚙ Edited: ${new Date(o.editedAt).toLocaleString()}</div>`:''}
+      ${o.printedAt?`<div class="sm" style="color:#2563eb;">🖨 Ticket printed: ${new Date(o.printedAt).toLocaleString()}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1996,6 +2116,153 @@ function saveOrderEdit(){
   closeModal('modal-edit');
   renderDashboard();
   showToast('Order updated!');
+}
+
+
+// ══ LOGO UPLOAD ══
+function uploadLogo(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const dataUrl=e.target.result;
+    state.settings.logoUrl=dataUrl;
+    save();
+    applyLogo();
+    showToast('Logo uploaded!');
+  };
+  reader.readAsDataURL(file);
+}
+function applyLogo(){
+  const logo=state.settings.logoUrl;
+  const headerLogo=el('header-logo');
+  const preview=el('logo-preview');
+  if(logo&&headerLogo){
+    headerLogo.innerHTML=`<img src="${logo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  }
+  if(logo&&preview){
+    preview.innerHTML=`<img src="${logo}" style="width:100%;height:100%;object-fit:cover;">`;
+  }
+}
+function removeLogo(){
+  state.settings.logoUrl='';
+  save();
+  el('header-logo').innerHTML='🌿';
+  el('logo-preview').innerHTML='🌿';
+  showToast('Logo removed');
+}
+
+// ══ SCHEDULE VIEW ══
+let schedWeekOffset=0;
+let schedSelectedDate=null;
+
+function schedCalNav(dir){
+  schedWeekOffset=Math.max(0,Math.min(2,schedWeekOffset+dir));
+  renderScheduleView();
+}
+
+function renderScheduleView(){
+  const dates=getWeekDates(schedWeekOffset);
+  const s=dates[0],e=dates[6];
+  el('sched-week-label').textContent=`${MONTHS[s.getMonth()]} ${s.getDate()} — ${MONTHS[e.getMonth()]} ${e.getDate()}`;
+  el('sched-calendar').innerHTML=dates.map(date=>{
+    const max=getDayMax(date);
+    const count=getDayCount(date);
+    const dKey=dateKey(date);
+    const isSun=date.getDay()===0;
+    const isSat=date.getDay()===6;
+    const dayName=DAYS_SHORT[date.getDay()];
+    const dateStr=`${date.getDate()} ${MONTHS[date.getMonth()]}`;
+    const isSelected=schedSelectedDate===dKey;
+    const pct=max>0?Math.round(count/max*100):0;
+    const countClass=pct<50?'green':pct<75?'gold':'red';
+    let hdrClass='cal-day-hdr'+(isSat?' sat':isSun?' sun':'');
+    let slotsHtml='';
+    if(isSun){
+      slotsHtml='<div class="no-delivery">No deliveries</div>';
+    } else {
+      const dayOrders=state.orders.filter(o=>{
+        if(o.status==='cancelled')return false;
+        return o.requestedSlot&&o.requestedSlot.date===dKey;
+      });
+      slotsHtml=getSlots(date).map(slot=>{
+        const slotOrders=dayOrders.filter(o=>o.requestedSlot.slot===slot);
+        const isBooked=slotOrders.length>0;
+        const hasDouble=slotOrders.length>=2;
+        return `<div class="slot-btn ${isBooked?'selected':''}" style="cursor:pointer;font-size:.58rem;${hasDouble?'background:#fff8e0;':''}" onclick="showSchedDayOrders('${dKey}','${slot}')">${slot}${slotOrders.length>0?' ('+slotOrders.length+')':''}</div>`;
+      }).join('');
+    }
+    return `<div class="cal-day ${isSelected?'next-avail':''}" onclick="showSchedDayOrders('${dKey}',null)" style="cursor:pointer;">
+      <div class="${hdrClass}">${dayName}</div>
+      <div class="cal-day-date">${dateStr}</div>
+      ${max>0?`<div class="cal-day-count ${countClass}">${count}/${max}</div>`:''}
+      <div class="cal-slots">${slotsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function showSchedDayOrders(dateStr, slot){
+  schedSelectedDate=dateStr;
+  const dayOrders=state.orders.filter(o=>{
+    if(o.status==='cancelled')return false;
+    if(!o.requestedSlot||o.requestedSlot.date!==dateStr)return false;
+    if(slot&&o.requestedSlot.slot!==slot)return false;
+    return true;
+  });
+  const wrap=el('sched-day-orders');
+  const date=new Date(dateStr+'T12:00:00');
+  const title=`${DAYS_SHORT[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]}${slot?' · '+slot:''}`;
+  if(!dayOrders.length){
+    wrap.innerHTML=`<p class="sm">No orders for ${title}.</p>`;
+    renderScheduleView();
+    return;
+  }
+  const pillMap={pending:'pill-pending',confirmed:'pill-confirmed',charged:'pill-charged',rescheduled:'pill-rescheduled',waitlist:'pill-waitlist'};
+  const labelMap={pending:'Awaiting',confirmed:'Confirmed',charged:'Charged',rescheduled:'Rescheduled',waitlist:'Waitlist'};
+  wrap.innerHTML=`<p style="font-family:'Playfair Display',serif;font-weight:600;margin-bottom:.75rem;">${title} — ${dayOrders.length} order${dayOrders.length!==1?'s':''}</p>`+
+    dayOrders.map(o=>`
+      <div style="background:var(--cream);border-radius:var(--radius);padding:.85rem;margin-bottom:.5rem;border-left:3px solid var(--teal);cursor:pointer;" onclick="switchTab('dashboard',el('tbtn-dashboard'))">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+          <div>
+            <strong style="font-size:.9rem;">${o.customer.firstName} ${o.customer.lastName}</strong>
+            <span class="pill ${pillMap[o.status]||'pill-pending'}" style="margin-left:.5rem;">${labelMap[o.status]||o.status}</span>
+          </div>
+          <div style="font-size:.85rem;font-weight:700;color:var(--teal-dark);">${fmt(o.total)}</div>
+        </div>
+        <div class="sm" style="margin-top:3px;">📞 ${o.customer.phone} · 📍 ${o.customer.delivZip||o.customer.billZip}</div>
+        <div class="sm">${o.items.map(i=>i.emoji+' '+i.name+' x'+i.qty).join(' · ')}</div>
+        ${o.requestedSlot?`<div class="sm" style="color:var(--teal-dark);">⏰ ${o.requestedSlot.slot}</div>`:''}
+        ${o.dropInstructions?`<div class="sm">📍 ${o.dropInstructions}</div>`:''}
+      </div>`).join('');
+  renderScheduleView();
+}
+
+// ══ CUSTOMER PROFILE CLICK ══
+function openCustomerProfile(phone){
+  const cust=state.customers[phone];
+  if(!cust)return;
+  // Pre-fill order form with customer data
+  switchTab('order',el('tbtn-order'));
+  setTimeout(()=>{
+    setv('custPhone','('+phone.slice(0,3)+') '+phone.slice(3,6)+'-'+phone.slice(6));
+    setv('custFirst',cust.firstName||'');
+    setv('custLast',cust.lastName||'');
+    setv('custEmail',cust.email||'');
+    setv('custCompany',cust.company||'');
+    setv('billStreet',cust.billStreet||'');
+    setv('billCity',cust.billCity||'');
+    setv('billZip',cust.billZip||'');
+    if(cust.billZip&&el('sameAddr').checked)lookupZip(cust.billZip);
+    if(cust.jobSites&&cust.jobSites.length>0){
+      const wrap=el('jobsite-history-wrap');
+      const sel=el('jobsite-select');
+      wrap.style.display='block';
+      sel.innerHTML='<option value="">— Select a previous job site or enter new —</option>'+
+        cust.jobSites.map((js,i)=>`<option value="${i}">${js.street}, ${js.city} ${js.zip}</option>`).join('');
+    }
+    el('cust-lookup-result').innerHTML=`<div class="cust-found"><div class="cust-found-title">✓ ${cust.firstName} loaded from customer history</div></div>`;
+    showToast('Customer loaded — ready to place order!');
+  },300);
 }
 
 function clearOrders(){if(!state.orders.length||!confirm('Clear all order history?'))return;state.orders=[];save();renderDashboard();updateBadge();}
