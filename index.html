@@ -418,9 +418,8 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
             </div>
             <div id="mulch-result" class="calc-result" style="display:none">
               <div><div style="font-size:.78rem;color:var(--text-light)">You need approximately</div><div class="calc-result-val" id="mulch-yards">0</div><div style="font-size:.78rem;color:var(--text-light)">cubic yards</div></div>
-              <button class="btn btn-teal btn-sm" onclick="addCalcToCart('mulch')">Add to Cart</button>
             </div>
-            <div class="calc-note">We recommend a minimum of 3 inches for best results.<br>Not sure? <strong>Call (757) 547-0646</strong> — we'll double check before you place your order.</div>
+            <div class="calc-note">We recommend a minimum of 3 inches for best results.<br><strong>It's always better to have a little extra than to run short — a second delivery means another delivery fee. We deliver in full cubic yard increments only.</strong><br>Not sure? <strong>Call (757) 547-0646</strong> — we'll double check before you place your order.</div>
           </div>
           <div id="calc-topsoil" style="display:none">
             <div class="calc-inputs">
@@ -430,9 +429,8 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
             </div>
             <div id="topsoil-result" class="calc-result" style="display:none">
               <div><div style="font-size:.78rem;color:var(--text-light)">You need approximately</div><div class="calc-result-val" id="topsoil-yards">0</div><div style="font-size:.78rem;color:var(--text-light)">cubic yards</div></div>
-              <button class="btn btn-teal btn-sm" onclick="addCalcToCart('topsoil')">Add to Cart</button>
             </div>
-            <div class="calc-note">Not sure about your numbers? <strong>Call (757) 547-0646</strong> — we'll double check before you place your order.</div>
+            <div class="calc-note"><strong>It's always better to have a little extra than to run short — a second delivery means another delivery fee. We deliver in full cubic yard increments only.</strong><br>Not sure? <strong>Call (757) 547-0646</strong> — we'll double check before you place your order.</div>
           </div>
         </div>
       </div>
@@ -516,11 +514,12 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
     <div class="cart-sticky">
       <div class="card">
         <div class="card-title">Your Order</div>
+        <div id="cart-warnings"></div>
         <div id="cart-items" class="cart-items"><div class="empty" style="padding:1.5rem 0"><p>No items yet.</p></div></div>
         <hr class="cdiv"/>
         <div class="crow"><span>Subtotal</span><span id="cart-sub">$0.00</span></div>
         <div class="crow"><span>Tax (<span id="cart-tax-rate">0</span>%)</span><span id="cart-tax">$0.00</span></div>
-        <div class="crow"><span>Delivery <span id="cart-zone-label" class="sm"></span></span><span id="cart-delivery">—</span></div>
+        <div id="cart-delivery-lines"></div>
         <hr class="cdiv"/>
         <div class="crow total"><span>Auth Hold Total</span><span id="cart-total">$0.00</span></div>
 
@@ -653,7 +652,8 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
     <div id="confirm-summary"></div>
     <div class="modal-acts">
       <button class="btn btn-outline" onclick="closeModal('modal-confirm')">Back</button>
-      <button class="btn btn-dark" id="confirm-btn" onclick="sendToClover()">Authorize &amp; Send to Clover</button>
+      <button class="btn btn-dark" id="confirm-btn" onclick="sendToClover()">Complete Order</button>
+    <p style="text-align:center;font-size:.75rem;color:#888;margin-top:.5rem;">🔒 Secured &amp; powered by Clover POS</p>
     </div>
   </div>
 </div>
@@ -691,11 +691,20 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 
 <!-- RESCHEDULE MODAL -->
 <div id="modal-reschedule" class="overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:680px;">
     <button class="modal-close" onclick="closeModal('modal-reschedule')">✕</button>
     <h2>🔄 Reschedule Delivery</h2>
-    <div class="field"><label>Reason / Notes</label><textarea id="reschedNote" rows="3" placeholder="e.g. Weather delay — heavy rain forecast."></textarea></div>
-    <div class="field"><label>New Estimated Window</label><input id="reschedDate" type="text" placeholder="e.g. Thursday–Friday next week, weather permitting"/></div>
+    <p class="sm mb">Select a new delivery window from the calendar below.</p>
+    <div class="cal-header">
+      <div class="cal-week-label" id="resched-week-label">Week 1</div>
+      <div class="cal-nav">
+        <button class="btn btn-outline btn-sm" onclick="reschedCalNav(-1)">← Prev</button>
+        <button class="btn btn-outline btn-sm" onclick="reschedCalNav(1)">Next →</button>
+      </div>
+    </div>
+    <div id="resched-calendar" class="cal-grid" style="margin-bottom:1rem;"></div>
+    <div id="resched-selected-slot" class="zip-res hide" style="margin-bottom:1rem;"></div>
+    <div class="field"><label>Reason / Notes</label><textarea id="reschedNote" rows="2" placeholder="e.g. Weather delay — heavy rain forecast."></textarea></div>
     <div class="modal-acts">
       <button class="btn btn-outline" onclick="closeModal('modal-reschedule')">Cancel</button>
       <button class="btn btn-gold" onclick="confirmReschedule()">Mark Rescheduled</button>
@@ -712,6 +721,19 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
     <div class="modal-acts">
       <button class="btn btn-outline" onclick="closeModal('modal-ticket')">Close</button>
       <button class="btn btn-dark" onclick="window.print()">🖨 Print Ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ORDER MODAL -->
+<div id="modal-edit" class="overlay">
+  <div class="modal" style="max-width:600px;">
+    <button class="modal-close" onclick="closeModal('modal-edit')">✕</button>
+    <h2>✏️ Edit Order</h2>
+    <div id="edit-order-content"></div>
+    <div class="modal-acts">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit')">Cancel</button>
+      <button class="btn btn-teal" onclick="saveOrderEdit()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -751,6 +773,12 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 // ══════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════
+// ═══ TRUCK CAPACITY SETTINGS — Change these when truck capacity changes ═══
+const MULCH_PER_TRUCK = 10;    // cubic yards per truck for mulch
+const TOPSOIL_PER_TRUCK = 6;   // cubic yards per truck for topsoil
+const MULCH_MAX_ONLINE = 30;   // max yards before "call us" message
+const TOPSOIL_MAX_ONLINE = 12; // max yards before "call us" message
+// ════════════════════════════════════════════════════════════════════════
 const DAILY_MAX = {0:0,1:12,2:12,3:12,4:12,5:12,6:8}; // 0=Sun closed
 const HEAVY_PCT = 0.75;
 const WEEKDAY_SLOTS = ['8–10AM','9–11AM','10AM–12PM','11AM–1PM','12–2PM','1–3PM','2–4PM','3–5PM','4–6PM'];
@@ -1345,6 +1373,27 @@ function toggleOrderBtn(){
   el('order-btn-hint').textContent=both?'Your card will be authorized (held), not charged yet.':'Check both boxes above to continue';
 }
 
+function calcTrucks(){
+  // Calculate number of trucks needed based on cart contents
+  let mulchYards=0, topsoilYards=0, hasBagged=false, bagCount=0;
+  state.products.forEach(p=>{
+    const qty=state.cart[p.id]||0;
+    if(!qty) return;
+    if(p.type==='mulch') mulchYards+=qty;
+    else if(p.type==='topsoil') topsoilYards+=qty;
+    else { hasBagged=true; bagCount+=qty; }
+  });
+  const mulchTrucks=mulchYards>0?Math.ceil(mulchYards/MULCH_PER_TRUCK):0;
+  const topsoilTrucks=topsoilYards>0?Math.ceil(topsoilYards/TOPSOIL_PER_TRUCK):0;
+  return {mulchTrucks,topsoilTrucks,mulchYards,topsoilYards,hasBagged,bagCount,
+    totalTrucks:mulchTrucks+topsoilTrucks};
+}
+
+function calcBagFee(bagCount){
+  if(bagCount<=3) return 0;
+  return (bagCount-3)*2; // $2 per bag over 3
+}
+
 function renderCart(){
   const items=state.products.filter(p=>state.cart[p.id]);
   const w=el('cart-items');
@@ -1360,13 +1409,71 @@ function renderCart(){
       </div>
       <span class="cprice">${fmt(p.price*state.cart[p.id])}</span>
     </div>`).join('');}
-  const sub=cartSub(),taxRate=parseFloat(state.settings.taxRate)||0,tax=sub*taxRate/100;
-  const fee=currentZipRule?currentZipRule.fee:0,total=sub+tax+(currentZipRule?fee:0);
+
+  const sub=cartSub();
+  const taxRate=parseFloat(state.settings.taxRate)||0;
+  const tax=sub*taxRate/100; // Tax on products only — delivery is NOT taxable
+  const trucks=calcTrucks();
+  const baseFee=currentZipRule?currentZipRule.fee:0;
+  const bagFee=calcBagFee(trucks.bagCount);
+
+  // Build delivery fee lines
+  let totalDelivery=0;
+  let deliveryLines='';
+  if(currentZipRule===undefined){
+    deliveryLines='<div class="crow"><span>Delivery</span><span>—</span></div>';
+  } else {
+    let truckNum=1;
+    for(let i=0;i<trucks.mulchTrucks;i++){
+      deliveryLines+=`<div class="crow"><span>Delivery ${truckNum} (Mulch)</span><span>${fmt(baseFee)}</span></div>`;
+      totalDelivery+=baseFee; truckNum++;
+    }
+    for(let i=0;i<trucks.topsoilTrucks;i++){
+      deliveryLines+=`<div class="crow"><span>Delivery ${truckNum} (Topsoil)</span><span>${fmt(baseFee)}</span></div>`;
+      totalDelivery+=baseFee; truckNum++;
+    }
+    if(bagFee>0){
+      deliveryLines+=`<div class="crow"><span>Bag loading fee (${trucks.bagCount} bags)</span><span>${fmt(bagFee)}</span></div>`;
+      totalDelivery+=bagFee;
+    }
+    if(truckNum===1&&!bagFee){
+      deliveryLines='<div class="crow"><span>Delivery</span><span>—</span></div>';
+    }
+  }
+
+  // Truck limit warnings
+  let warnings='';
+  if(trucks.mulchYards>MULCH_MAX_ONLINE){
+    warnings+=`<div style="background:#fdecea;border:1px solid #f0b0aa;border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:var(--danger);margin-bottom:.5rem;">⚠ Orders over ${MULCH_MAX_ONLINE} yards of mulch require a call. Please call us at (757) 547-0646 during normal business hours.</div>`;
+  } else if(trucks.mulchTrucks>1){
+    warnings+=`<div style="background:#fff8e0;border:1px solid #f0d070;border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:#7a5800;margin-bottom:.5rem;">🚚 The maximum we deliver on one trip is ${MULCH_PER_TRUCK} cubic yards. Your order will require ${trucks.mulchTrucks} deliveries. Call us with any questions during normal business hours at (757) 547-0646.</div>`;
+  }
+  if(trucks.topsoilYards>TOPSOIL_MAX_ONLINE){
+    warnings+=`<div style="background:#fdecea;border:1px solid #f0b0aa;border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:var(--danger);margin-bottom:.5rem;">⚠ Orders over ${TOPSOIL_MAX_ONLINE} yards of topsoil require a call. Please call us at (757) 547-0646 during normal business hours.</div>`;
+  } else if(trucks.topsoilTrucks>1){
+    warnings+=`<div style="background:#fff8e0;border:1px solid #f0d070;border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:#7a5800;margin-bottom:.5rem;">🚚 The maximum we deliver on one trip is ${TOPSOIL_PER_TRUCK} cubic yards of topsoil. Your order will require ${trucks.topsoilTrucks} deliveries. Call us with any questions during normal business hours at (757) 547-0646.</div>`;
+  }
+  if(trucks.hasBagged&&trucks.mulchTrucks===0&&trucks.topsoilTrucks===0){
+    warnings+=`<div style="background:#fdecea;border:1px solid #f0b0aa;border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:var(--danger);margin-bottom:.5rem;">⚠ Bagged items must be ordered with a bulk delivery (mulch or topsoil). Please add a bulk product to your order.</div>`;
+  }
+  if(trucks.bagCount>8){
+    warnings+=`<div style="background:#fdecea;border:1px solid #f0b0aa;border-radius:6px;padding:.6rem .85rem;font-size:.78rem;color:var(--danger);margin-bottom:.5rem;">⚠ Maximum 8 bags per delivery. Please call us at (757) 547-0646 for larger orders.</div>`;
+  }
+
+  const total=sub+tax+totalDelivery;
+
   el('cart-sub').textContent=fmt(sub);
   el('cart-tax').textContent=fmt(tax);
-  el('cart-delivery').textContent=currentZipRule===undefined?'—':fmt(fee);
-  el('cart-zone-label').textContent=currentZipRule?.label?`(${currentZipRule.label})`:'';
+  if(el('cart-delivery-lines'))el('cart-delivery-lines').innerHTML=deliveryLines;
   el('cart-total').textContent=fmt(total);
+
+  // Show warnings above cart if any
+  const warnEl=el('cart-warnings');
+  if(warnEl)warnEl.innerHTML=warnings;
+
+  // Store delivery total for order submission
+  state.currentDeliveryTotal=totalDelivery;
+  state.currentTrucks=trucks;
 }
 
 // CALENDAR
@@ -1466,7 +1573,7 @@ function submitOrder(){
   if(!/^\d{5}$/.test(delivZip)){showToast('Valid delivery ZIP required','err');return;}
   if(!currentZipRule&&!state.zipOverridden){showToast('Please check your delivery ZIP first','err');return;}
   const sub=cartSub(),taxRate=parseFloat(state.settings.taxRate)||0,tax=sub*taxRate/100;
-  const fee=currentZipRule?currentZipRule.fee:0,total=sub+tax+fee;
+  const fee=state.currentDeliveryTotal||0,total=sub+tax+fee;
   const slotDate=state.selectedSlot?new Date(state.selectedSlot.date+'T12:00:00'):null;
   const isWaitlist=slotDate&&getDayCount(slotDate)>=getDayMax(slotDate);
 
@@ -1508,7 +1615,7 @@ function submitOrder(){
 async function sendToClover(){
   const btn=el('confirm-btn');btn.disabled=true;btn.textContent='Sending…';
   const s=state.settings,o=state.pendingOrder;
-  const orderId='ORD-'+Date.now();
+  const orderId='PENDING-'+Date.now(); // Will be replaced by Clover ID
   const base='/api'; const cloverEnv=s.env;
   const newOrder={
     id:orderId,customer:o.customer,items:o.items,
@@ -1548,6 +1655,7 @@ async function sendToClover(){
     if(!orderRes.ok)throw new Error(`HTTP ${orderRes.status}`);
     const orderData=await orderRes.json();
     newOrder.cloverOrderId=orderData.id;
+    newOrder.id=orderData.id; // Use Clover ID as primary order number
     for(const item of lineItems){
       await fetch(`${base}/v3/merchants/${s.merchantId}/orders/${orderData.id}/line_items`,{
         method:'POST',headers:{'Authorization':`Bearer ${s.apiToken}`,'Content-Type':'application/json','x-clover-env':cloverEnv},
@@ -1631,11 +1739,16 @@ function markCharged(orderId){
   save();renderDashboard();updateBadge();showToast(`Order ${orderId} charged!`);
 }
 
-function openReschedule(orderId){state.activeReschedId=orderId;setv('reschedNote','');setv('reschedDate','');openModal('modal-reschedule');}
+function openReschedule(orderId){state.activeReschedId=orderId;setv('reschedNote','');reschedSelectedSlot=null;reschedWeekOffset=0;el('resched-selected-slot').className='zip-res hide';openModal('modal-reschedule');setTimeout(()=>renderReschedCalendar(),100);}
 function confirmReschedule(){
   const o=state.orders.find(x=>x.id===state.activeReschedId);if(!o)return;
-  o.status='rescheduled';o.rescheduleNote=el('reschedNote').value.trim();o.rescheduleDate=el('reschedDate').value.trim();
-  save();closeModal('modal-reschedule');renderDashboard();updateBadge();showToast('Order rescheduled','warn');
+  o.status='rescheduled';
+  o.rescheduleNote=el('reschedNote').value.trim();
+  if(reschedSelectedSlot){
+    o.rescheduleDate=reschedSelectedSlot.label;
+    o.requestedSlot=reschedSelectedSlot;
+  }
+  save();closeModal('modal-reschedule');renderDashboard();updateBadge();renderCalendar();showToast('Order rescheduled','warn');
 }
 function cancelOrder(orderId){
   const o=state.orders.find(x=>x.id===orderId);
@@ -1729,6 +1842,7 @@ function renderDashboard(){
     const acts=[];
     if(o.status==='pending'||o.status==='waitlist'){
       acts.push(`<button class="btn btn-success btn-sm" onclick="openConfirmCharge('${o.id}')">✅ Confirm</button>`);
+      acts.push(`<button class="btn btn-outline btn-sm" onclick="openEditOrder('${o.id}')">✏️ Edit</button>`);
       acts.push(`<button class="btn btn-gold btn-sm" onclick="openReschedule('${o.id}')">🔄 Reschedule</button>`);
       acts.push(`<button class="btn btn-outline btn-sm" onclick="cancelOrder('${o.id}')">✕ Cancel</button>`);
     }
@@ -1766,8 +1880,122 @@ function renderDashboard(){
       ${o.zipOverridden?`<div class="sm" style="color:var(--gold);">⚠ ZIP outside standard zones — confirm delivery fee</div>`:''}
       ${o.rescheduleNote?`<div class="reschedule-note">🔄 ${o.rescheduleNote}${o.rescheduleDate?' · Est: '+o.rescheduleDate:''}</div>`:''}
       ${o.cloverError?`<div class="danger-txt mt">⚠ Clover push failed: ${o.cloverError}</div>`:''}
+      ${o.editedAt?`<div class="sm" style="color:#aaa;">⚙ Edited: ${new Date(o.editedAt).toLocaleString()}</div>`:''}
     </div>`;
   }).join('');
+}
+
+
+// ══ RESCHEDULE CALENDAR ══
+let reschedWeekOffset = 0;
+let reschedSelectedSlot = null;
+
+function reschedCalNav(dir){
+  reschedWeekOffset=Math.max(0,Math.min(2,reschedWeekOffset+dir));
+  renderReschedCalendar();
+}
+
+function renderReschedCalendar(){
+  const dates=getWeekDates(reschedWeekOffset);
+  const nextAvailKey=findNextAvail(dates);
+  const s=dates[0],e=dates[6];
+  el('resched-week-label').textContent=`Week ${reschedWeekOffset+1} — ${MONTHS[s.getMonth()]} ${s.getDate()} to ${MONTHS[e.getMonth()]} ${e.getDate()}`;
+  el('resched-calendar').innerHTML=dates.map(date=>{
+    const max=getDayMax(date);
+    const count=getDayCount(date);
+    const dKey=dateKey(date);
+    const isSun=date.getDay()===0;
+    const isSat=date.getDay()===6;
+    const isNextAvail=dKey===nextAvailKey;
+    const isHeavy=max>0&&count>=Math.floor(max*HEAVY_PCT)&&count<max;
+    const dayName=DAYS_SHORT[date.getDay()];
+    const dateStr=`${date.getDate()} ${MONTHS[date.getMonth()]}`;
+    let dayClass='cal-day'+(isNextAvail?' next-avail':'');
+    let hdrClass='cal-day-hdr'+(isSat?' sat':isSun?' sun':'');
+    let countHtml=max>0?`<div class="cal-day-count ${Math.round(count/max*100)<50?'green':Math.round(count/max*100)<75?'gold':'red'}">${count}/${max}</div>`:'';
+    let slotsHtml='';
+    if(isSun){slotsHtml='<div class="no-delivery">No deliveries</div>';}
+    else{
+      if(isNextAvail)slotsHtml+='<div class="next-avail-tag">✓ Next Available</div>';
+      if(isHeavy)slotsHtml+='<div class="heavy-warning">⚠ Heavy day</div>';
+      slotsHtml+=getSlots(date).map(slot=>{
+        const booked=isSlotBooked(date,slot);
+        const selected=reschedSelectedSlot&&reschedSelectedSlot.date===dKey&&reschedSelectedSlot.slot===slot;
+        return `<button class="slot-btn ${booked?'booked':selected?'selected':''}" ${booked?'disabled':''} onclick="selectReschedSlot('${dKey}','${slot}','${dayName} ${dateStr}')">${slot}</button>`;
+      }).join('');
+    }
+    return `<div class="${dayClass}"><div class="${hdrClass}">${dayName}</div><div class="cal-day-date">${dateStr}</div>${countHtml}<div class="cal-slots">${slotsHtml}</div></div>`;
+  }).join('');
+}
+
+function selectReschedSlot(dateStr,slot,label){
+  reschedSelectedSlot={date:dateStr,slot,label:`${label} · ${slot}`};
+  el('resched-selected-slot').className='zip-res ok';
+  el('resched-selected-slot').textContent=`✓ New window: ${reschedSelectedSlot.label}`;
+  renderReschedCalendar();
+}
+
+// ══ EDIT ORDER ══
+function openEditOrder(orderId){
+  const o=state.orders.find(x=>x.id===orderId);
+  if(!o)return;
+  el('edit-order-content').innerHTML=`
+    <p class="sm mb">Order: <strong>${o.id}</strong> · ${o.customer.firstName} ${o.customer.lastName}</p>
+    <hr class="soft"/>
+    <div class="card-title" style="font-size:.85rem;">Items</div>
+    ${o.items.map((item,i)=>`
+      <div class="flex" style="margin-bottom:.5rem;gap:.5rem;">
+        <span style="flex:1;font-size:.87rem;">${item.emoji} ${item.name}</span>
+        <input type="number" min="0" step="1" value="${item.qty}" id="edit-qty-${i}" style="width:80px;" onchange="updateEditTotal()"/>
+        <span class="sm">${item.unit}</span>
+      </div>`).join('')}
+    <hr class="soft"/>
+    <div class="field"><label>Delivery Window</label><input id="edit-delivery" type="text" value="${o.deliveryTimeConfirmed||o.requestedSlot?.label||''}"/></div>
+    <div class="field"><label>Drop Instructions</label><textarea id="edit-instructions" rows="2">${o.dropInstructions||''}</textarea></div>
+    <div class="field"><label>Staff Notes</label><textarea id="edit-notes" rows="2">${o.staffNotes||''}</textarea></div>
+    <div id="edit-total" class="sm mt" style="font-weight:700;"></div>
+  `;
+  state.activeEditId=orderId;
+  updateEditTotal();
+  openModal('modal-edit');
+}
+
+function updateEditTotal(){
+  const o=state.orders.find(x=>x.id===state.activeEditId);
+  if(!o)return;
+  let sub=0;
+  o.items.forEach((item,i)=>{
+    const qty=parseFloat(el('edit-qty-'+i)?.value)||0;
+    sub+=qty*item.price;
+  });
+  const tax=sub*(parseFloat(state.settings.taxRate)||0)/100;
+  el('edit-total').textContent='Updated subtotal: '+fmt(sub)+' + tax: '+fmt(tax)+' = '+fmt(sub+tax)+' (delivery fees recalculate on save)';
+}
+
+function saveOrderEdit(){
+  const o=state.orders.find(x=>x.id===state.activeEditId);
+  if(!o)return;
+  // Update quantities
+  o.items.forEach((item,i)=>{
+    const qty=parseFloat(el('edit-qty-'+i)?.value)||0;
+    item.qty=qty;
+    item.lineTotal=qty*item.price;
+  });
+  // Remove zero qty items
+  o.items=o.items.filter(item=>item.qty>0);
+  // Recalculate totals
+  const sub=o.items.reduce((s,i)=>s+i.lineTotal,0);
+  const tax=sub*(parseFloat(state.settings.taxRate)||0)/100;
+  o.sub=sub;
+  o.tax=tax;
+  o.deliveryTimeConfirmed=el('edit-delivery')?.value||o.deliveryTimeConfirmed;
+  o.dropInstructions=el('edit-instructions')?.value||o.dropInstructions;
+  o.staffNotes=el('edit-notes')?.value||o.staffNotes;
+  o.editedAt=new Date().toISOString();
+  save();
+  closeModal('modal-edit');
+  renderDashboard();
+  showToast('Order updated!');
 }
 
 function clearOrders(){if(!state.orders.length||!confirm('Clear all order history?'))return;state.orders=[];save();renderDashboard();updateBadge();}
