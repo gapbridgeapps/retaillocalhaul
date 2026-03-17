@@ -291,6 +291,25 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 </style>
 </head>
 <body>
+<script>
+// ── IMMEDIATE customer mode check — runs before anything renders ──
+(function(){
+  const p=new URLSearchParams(window.location.search);
+  const isCustomer=p.get('mode')==='customer'||p.get('customer')==='1';
+  if(isCustomer){
+    sessionStorage.setItem('customerMode','1');
+    // Inject CSS immediately to hide staff elements before render
+    const s=document.createElement('style');
+    s.id='customer-mode-css';
+    s.textContent=`
+      #tbtn-settings,#tbtn-zip,#tbtn-history,#tbtn-dashboard,#tbtn-schedule{display:none!important;}
+      #panel-settings,#panel-zip,#panel-history,#panel-dashboard,#panel-schedule{display:none!important;}
+      #tbtn-order{pointer-events:auto!important;}
+    `;
+    document.head.appendChild(s);
+  }
+})();
+</script>
 
 <header>
   <div class="header-top">
@@ -1010,7 +1029,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const hasMerchant=gateParams.get('merchant_id')||gateHash.get('merchant_id');
   const hasToken=gateHash.get('access_token');
   const hasSavedCreds=localStorage.getItem('ccc_v3')&&JSON.parse(localStorage.getItem('ccc_v3')||'{}')?.settings?.merchantId;
-  const isCustomerMode=gateParams.get('mode')==='customer'||gateParams.get('customer')==='1';
+  const isCustomerMode=sessionStorage.getItem('customerMode')==='1'||gateParams.get('mode')==='customer'||gateParams.get('customer')==='1';
   const isReferredFromWebsite=document.referrer&&(document.referrer.includes('carterscountrycorner')||document.referrer.includes('cartersgardencenter')||document.referrer.includes('godaddy'));
 
   // Customer mode — show only ordering interface
@@ -2700,4 +2719,3 @@ setTimeout(checkMorningDigest,3000);
 </script>
 </body>
 </html>
-.
