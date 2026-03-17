@@ -213,6 +213,8 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 .order-card.s-confirmed{border-left-color:#2563eb;}
 .order-card.s-charged{border-left-color:var(--success);}
 .order-card.s-rescheduled{border-left-color:var(--teal);}
+.order-card.s-paid{border-left-color:#2563eb;}
+.order-card.s-delivered{border-left-color:var(--success);}
 .order-card.s-cancelled{border-left-color:#ccc;opacity:.65;}
 .order-card.s-waitlist{border-left-color:#a060a0;}
 .order-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;}
@@ -234,7 +236,8 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 .pill-rescheduled{background:var(--teal-pale);color:var(--teal-dark);}
 .pill-cancelled{background:#f0f0f0;color:#888;}
 .pill-waitlist{background:#f0e0f0;color:#7a007a;}
-.pill-completed{background:#e8f5ee;color:var(--success);}
+.pill-paid{background:#e8f0fe;color:#1a4a9e;}
+.pill-delivered{background:#e8f5ee;color:var(--success);}
 .pill-printed{background:#e8f0fe;color:#1a4a9e;}
 
 /* DELIVERY TICKET */
@@ -461,6 +464,7 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
       <!-- CALENDAR -->
       <div class="card mb">
         <div class="card-title">Request Delivery Window</div>
+        <div id="multi-slot-notice" style="display:none;" class="zip-res warn mb"></div>
         <p class="sm mb">Choose your preferred window. Our staff will confirm during their callback. Monday–Saturday (Saturday until 4PM). No deliveries on Sundays.</p>
         <div class="cal-header">
           <div class="cal-week-label" id="cal-week-label">Week 1</div>
@@ -622,7 +626,7 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
     <div class="stat"><div class="stat-label">Total</div><div class="stat-val dark" id="stat-total">0</div></div>
     <div class="stat"><div class="stat-label">Active</div><div class="stat-val gold" id="stat-pending">0</div></div>
     <div class="stat"><div class="stat-label">Confirmed</div><div class="stat-val teal" id="stat-confirmed">0</div></div>
-    <div class="stat"><div class="stat-label">Completed</div><div class="stat-val teal" id="stat-charged">0</div></div>
+    <div class="stat"><div class="stat-label">Delivered</div><div class="stat-val teal" id="stat-charged">0</div></div>
     <div class="stat"><div class="stat-label">Revenue</div><div class="stat-val dark" id="stat-revenue">$0</div></div>
   </div>
   <div class="card">
@@ -647,6 +651,41 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 </div>
 
 <div id="toast"></div>
+
+<!-- THANK YOU POPUP -->
+<div id="thankyou-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2.5rem 2rem;max-width:400px;width:92%;text-align:center;box-shadow:0 12px 60px rgba(0,0,0,.3);">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">🌿</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:#1a1a1a;margin-bottom:.75rem;">Thank You!</div>
+    <div style="font-size:.9rem;color:#555;line-height:1.6;margin-bottom:1.25rem;">Your order has been received. A member of our team will call you shortly to confirm your delivery details.</div>
+    <div style="background:#f9f7f4;border-radius:10px;padding:1.25rem;margin-bottom:1.5rem;text-align:left;">
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#aaa;margin-bottom:.5rem;">Did you know?</div>
+      <div style="font-size:.85rem;color:#444;line-height:1.6;">Carters Country Corner is a full-service garden center with everything you need for your yard and garden — all in one spot.<br><br>And if you'd rather not spread that mulch yourself — <strong>we offer spreading services too!</strong> Just mention it when we call.</div>
+      <a href="tel:7575470646" style="display:block;margin-top:.75rem;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#5a9e8f;text-decoration:none;">📞 (757) 547-0646</a>
+    </div>
+    <div style="font-size:.82rem;font-weight:700;color:#1a1a1a;margin-bottom:.75rem;">How would you like to receive your receipt?</div>
+    <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;">
+      <button onclick="setReceiptPref('email')" style="width:100%;background:#5a9e8f;color:#fff;border:none;border-radius:8px;padding:.8rem;font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;">📧 Email Receipt</button>
+      <button onclick="setReceiptPref('text')" style="width:100%;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:.8rem;font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;">📱 Text Receipt</button>
+      <button onclick="setReceiptPref('none')" style="width:100%;background:transparent;color:#888;border:1.5px solid #ddd;border-radius:8px;padding:.8rem;font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;">No Receipt Needed</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT NOW OR LATER PROMPT -->
+<div id="print-prompt-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem;max-width:360px;width:92%;text-align:center;box-shadow:0 12px 60px rgba(0,0,0,.3);">
+    <div style="font-size:1.5rem;margin-bottom:.75rem;">🖨</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;margin-bottom:.5rem;">Order Paid!</div>
+    <div style="font-size:.85rem;color:#555;margin-bottom:.5rem;">Order for <strong id="print-prompt-name"></strong></div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:#5a9e8f;margin-bottom:1.25rem;" id="print-prompt-total"></div>
+    <div style="font-size:.85rem;font-weight:700;margin-bottom:1rem;">Print delivery ticket now?</div>
+    <div style="display:flex;gap:.75rem;">
+      <button onclick="printNow()" style="flex:1;background:#5a9e8f;color:#fff;border:none;border-radius:8px;padding:.8rem;font-family:'Lato',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;">🖨 Print Now</button>
+      <button onclick="printLater()" style="flex:1;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:.8rem;font-family:'Lato',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;">📋 Save for Later</button>
+    </div>
+  </div>
+</div>
 
 <!-- SAME DAY POPUP -->
 <div id="sameday-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;">
@@ -973,7 +1012,7 @@ function switchTab(name,btn){
 }
 
 function updateBadge(){
-  const c=state.orders.filter(o=>['pending','waitlist','confirmed','rescheduled'].includes(o.status)).length;
+  const c=state.orders.filter(o=>['pending','waitlist','confirmed','paid','rescheduled'].includes(o.status)).length;
   const b=el('pending-badge');b.textContent=c;b.style.display=c>0?'inline':'none';
 }
 
@@ -1136,20 +1175,40 @@ function addZips(){
   showToast(`${added} ZIP${added!==1?'s':''} added!${dupes?' ('+dupes+' dupes skipped)':''}`);
 }
 function removeZip(i){state.zipRules.splice(i,1);save();renderZipTable();}
+function removeZipGroup(indices){
+  if(!confirm('Remove this entire delivery zone?'))return;
+  // Remove in reverse order to preserve indices
+  indices.sort((a,b)=>b-a).forEach(i=>state.zipRules.splice(i,1));
+  save();renderZipTable();
+  showToast('Zone removed!');
+}
 function clearAllZips(){if(!state.zipRules.length||!confirm('Remove all ZIP zones?'))return;state.zipRules=[];save();renderZipTable();}
 function renderZipTable(){
   el('zip-count').textContent=state.zipRules.length;
   const w=el('zip-table-wrap');
   if(!state.zipRules.length){w.innerHTML='<div class="empty"><div class="empty-icon">📍</div><p>No zones added yet.</p></div>';return;}
-  w.innerHTML=`<table class="ztable"><thead><tr><th>ZIP</th><th>Zone</th><th>Fee</th><th>Min Order</th><th></th></tr></thead><tbody>${
-    state.zipRules.map((z,i)=>`<tr>
-      <td><strong>${z.zip}</strong></td>
-      <td>${z.label||'<span style="color:#ccc">—</span>'}</td>
-      <td>${z.blocked?'<span class="fee-badge fee-blocked">Blocked</span>':z.fee===0?'<span class="fee-badge fee-free">Free</span>':`<span class="fee-badge fee-paid">${fmt(z.fee)}</span>`}</td>
-      <td>${z.min>0?fmt(z.min)+' min':'<span style="color:#ccc">None</span>'}</td>
-      <td><button class="btn btn-outline btn-sm" onclick="removeZip(${i})">Remove</button></td>
-    </tr>`).join('')}
-  </tbody></table>`;
+  // Group ZIPs by zone label + fee + blocked
+  const zoneGroups={};
+  state.zipRules.forEach((z,i)=>{
+    const key=(z.label||'No Label')+'|'+z.fee+'|'+z.blocked+'|'+z.min;
+    if(!zoneGroups[key])zoneGroups[key]={label:z.label||'',fee:z.fee,blocked:z.blocked,min:z.min,zips:[],indices:[]};
+    zoneGroups[key].zips.push(z.zip);
+    zoneGroups[key].indices.push(i);
+  });
+  w.innerHTML='<div style="display:flex;flex-direction:column;gap:.75rem;">'+
+    Object.values(zoneGroups).map(group=>`
+      <div style="background:var(--cream);border-radius:var(--radius);padding:1rem;border:1px solid var(--mist);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem;">
+          <div>
+            <strong style="font-size:.9rem;">${group.label||'Unlabeled Zone'}</strong>
+            <span style="margin-left:.75rem;">${group.blocked?'<span class="fee-badge fee-blocked">Blocked</span>':group.fee===0?'<span class="fee-badge fee-free">Free Delivery</span>':`<span class="fee-badge fee-paid">${fmt(group.fee)} delivery</span>`}</span>
+            ${group.min>0?`<span class="sm" style="margin-left:.5rem;">${fmt(group.min)} minimum</span>`:''}
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="removeZipGroup([${group.indices.join(',')}])">Remove Zone</button>
+        </div>
+        <div style="font-size:.82rem;color:var(--text-light);">${group.zips.join(', ')}</div>
+      </div>`).join('')+
+  '</div>';
 }
 
 // ADDRESS TOGGLE
@@ -1225,11 +1284,39 @@ function debounceLookup(phone){
 function lookupCustomerLocal(phone){
   const cust=state.customers[phone];
   if(!cust){
-    // Try Clover lookup
     lookupCustomerClover(phone);
     return;
   }
-  // Found in local history
+  // Found — ask for house number verification
+  el('cust-lookup-result').innerHTML=`
+    <div class="cust-found">
+      <div class="cust-found-title">👋 Welcome back, ${cust.firstName}!</div>
+      <div class="sm mb">To confirm your identity, please enter your house number.</div>
+      <div class="flex" style="gap:.5rem;">
+        <input type="text" id="house-verify" placeholder="e.g. 625" style="flex:1;font-size:.9rem;" onkeydown="if(event.key==='Enter')verifyHouseNumber('${phone}')"/>
+        <button class="btn btn-teal btn-sm" onclick="verifyHouseNumber('${phone}')">Confirm</button>
+      </div>
+      <div id="house-verify-err" class="danger-txt" style="display:none;margin-top:4px;">That doesn't match our records. Please check your entry or call us at (757) 547-0646.</div>
+    </div>`;
+}
+
+function verifyHouseNumber(phone){
+  const cust=state.customers[phone];
+  if(!cust)return;
+  const entered=(el('house-verify').value||'').trim();
+  // Extract house number from stored billing street
+  const storedStreet=cust.billStreet||'';
+  const storedNum=storedStreet.match(/^\d+/)?storedStreet.match(/^\d+/)[0]:'';
+  if(!storedNum||entered===storedNum){
+    // Verified — fill in details
+    fillCustomerDetails(phone,cust);
+  } else {
+    el('house-verify-err').style.display='block';
+    el('house-verify').style.borderColor='var(--danger)';
+  }
+}
+
+function fillCustomerDetails(phone,cust){
   setv('custFirst',cust.firstName||'');
   setv('custLast',cust.lastName||'');
   setv('custEmail',cust.email||'');
@@ -1238,8 +1325,6 @@ function lookupCustomerLocal(phone){
   setv('billCity',cust.billCity||'');
   setv('billZip',cust.billZip||'');
   if(cust.billZip&&el('sameAddr').checked)lookupZip(cust.billZip);
-
-  // Show job sites if any
   if(cust.jobSites&&cust.jobSites.length>0){
     const wrap=el('jobsite-history-wrap');
     const sel=el('jobsite-select');
@@ -1247,10 +1332,9 @@ function lookupCustomerLocal(phone){
     sel.innerHTML='<option value="">— Select a previous job site or enter new —</option>'+
       cust.jobSites.map((js,i)=>`<option value="${i}">${js.street}, ${js.city} ${js.zip}${js.label?' ('+js.label+')':''}</option>`).join('');
   }
-
   el('cust-lookup-result').innerHTML=`
     <div class="cust-found">
-      <div class="cust-found-title">✓ Welcome back, ${cust.firstName}!</div>
+      <div class="cust-found-title">✓ Identity confirmed — Welcome back, ${cust.firstName}!</div>
       <div class="sm">Details filled in from your last order. Previous orders: ${(cust.orders||[]).length}</div>
     </div>`;
 }
@@ -1612,9 +1696,33 @@ function renderCalendar(){
 }
 
 function selectSlot(dateStr,slot,label){
-  state.selectedSlot={date:dateStr,slot,label:`${label} · ${slot}`};
-  el('selected-slot-display').className='zip-res ok';
-  el('selected-slot-display').textContent=`✓ Requested: ${state.selectedSlot.label} — staff will confirm during callback`;
+  const trucks=calcTrucks?calcTrucks():{totalTrucks:1};
+  const needed=trucks.totalTrucks||1;
+  if(!state.selectedSlots)state.selectedSlots=[];
+  // Toggle slot
+  const idx=state.selectedSlots.findIndex(s=>s.date===dateStr&&s.slot===slot);
+  if(idx>=0){
+    state.selectedSlots.splice(idx,1);
+  } else {
+    if(state.selectedSlots.length>=needed)state.selectedSlots.shift();
+    state.selectedSlots.push({date:dateStr,slot,label:`${label} · ${slot}`});
+  }
+  state.selectedSlot=state.selectedSlots[0]||null;
+  const display=el('selected-slot-display');
+  if(state.selectedSlots.length===0){
+    display.className='zip-res hide';
+  } else {
+    display.className='zip-res ok';
+    display.innerHTML=state.selectedSlots.map((s,i)=>`✓ Delivery ${i+1}: ${s.label}`).join('<br>');
+  }
+  // Update multi-slot notice
+  const notice=el('multi-slot-notice');
+  if(needed>1&&notice){
+    notice.style.display='block';
+    notice.innerHTML=`🚚 Your order requires <strong>${needed} deliveries</strong>. Please select ${needed} delivery windows below. They don't have to be on the same day — our staff will confirm your schedule during the callback. <strong>${state.selectedSlots.length}/${needed} selected.</strong>`;
+  } else if(notice){
+    notice.style.display='none';
+  }
   renderCalendar();
 }
 
@@ -1749,9 +1857,11 @@ async function sendToClover(){
 
   state.orders.unshift(newOrder);
   saveCustomerHistory(newOrder);
+  state.pendingReceiptOrderId=newOrder.id;
   save();updateBadge();
   closeModal('modal-confirm');
   btn.disabled=false;btn.textContent='Authorize';
+  showThankYouPopup(newOrder);
 
   // Reset form
   state.cart={};state.selectedSlot=null;currentZipRule=undefined;state.zipOverridden=false;
@@ -1922,15 +2032,15 @@ function renderDashboard(){
   el('stat-total').textContent=orders.length;
   el('stat-pending').textContent=orders.filter(o=>['pending','waitlist','confirmed','rescheduled'].includes(o.status)).length;
   el('stat-confirmed').textContent=orders.filter(o=>o.status==='confirmed').length;
-  el('stat-charged').textContent=orders.filter(o=>o.status==='completed').length;
-  el('stat-revenue').textContent=fmt(orders.filter(o=>o.status==='completed'||o.status==='charged').reduce((s,o)=>s+o.total,0));
+  el('stat-charged').textContent=orders.filter(o=>o.status==='delivered').length;
+  el('stat-revenue').textContent=fmt(orders.filter(o=>o.status==='delivered'||o.status==='paid').reduce((s,o)=>s+o.total,0));
   const filtered=filter==='all'?orders:
-    filter==='active'?orders.filter(o=>!['completed','cancelled'].includes(o.status)):
+    filter==='active'?orders.filter(o=>!['delivered','cancelled'].includes(o.status)):
     orders.filter(o=>o.status===filter);
   const w=el('orders-wrap');
   if(!filtered.length){w.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>No orders here yet.</p></div>';return;}
-  const pillMap={pending:'pill-pending',confirmed:'pill-confirmed',charged:'pill-confirmed',completed:'pill-charged',rescheduled:'pill-rescheduled',cancelled:'pill-cancelled',waitlist:'pill-waitlist'};
-  const labelMap={pending:'Awaiting Confirm',confirmed:'Confirmed',charged:'Confirmed',completed:'Completed',rescheduled:'Rescheduled',cancelled:'Cancelled',waitlist:'Waitlist'};
+  const pillMap={pending:'pill-pending',confirmed:'pill-confirmed',paid:'pill-paid',delivered:'pill-delivered',rescheduled:'pill-rescheduled',cancelled:'pill-cancelled',waitlist:'pill-waitlist'};
+  const labelMap={pending:'Awaiting Confirm',confirmed:'Confirmed',paid:'Paid',delivered:'Delivered',rescheduled:'Rescheduled',cancelled:'Cancelled',waitlist:'Waitlist'};
   w.innerHTML=filtered.map(o=>{
     const delivZip=o.customer.delivZip||o.customer.zip||'';
     const sameAddr=o.customer.sameAddr!==false;
@@ -1956,14 +2066,19 @@ function renderDashboard(){
       acts.push(`<button class="btn btn-outline btn-sm" onclick="cancelOrder('${o.id}')">✕ Cancel</button>`);
     }
     if(o.status==='confirmed'){
-      acts.push(`<button class="btn btn-success btn-sm" onclick="chargeNowClover('${o.id}')">💳 Charge Now</button>`);
-      acts.push(`<button class="btn btn-dark btn-sm" onclick="markComplete('${o.id}')">✓ Complete</button>`);
-      acts.push(`<button class="btn btn-teal btn-sm" onclick="openTicket('${o.id}')">🖨 Print Ticket</button>`);
+      acts.push(`<button class="btn btn-success btn-sm" onclick="markPaid('${o.id}')">💳 Mark Paid</button>`);
       acts.push(`<button class="btn btn-gold btn-sm" onclick="openReschedule('${o.id}')">🔄 Reschedule</button>`);
+      acts.push(`<button class="btn btn-outline btn-sm" onclick="cancelOrder('${o.id}')">✕ Cancel</button>`);
     }
-    if(o.status==='charged')acts.push(`<button class="btn btn-outline btn-sm" onclick="openTicket('${o.id}')">🖨 Ticket</button>`);
-    if(o.status==='completed'){
-      acts.push(`<button class="btn btn-outline btn-sm" onclick="openTicket('${o.id}')">🖨 Ticket</button>`);
+    if(o.status==='paid'){
+      acts.push(`<button class="btn btn-teal btn-sm" onclick="openTicket('${o.id}')">🖨 Print Ticket</button>`);
+      acts.push(`<button class="btn btn-dark btn-sm" onclick="markDelivered('${o.id}')">✓ Mark Delivered</button>`);
+      const cloverBase2=state.settings.env==='production'?'https://www.clover.com':'https://sandbox.dev.clover.com';
+      if(o.cloverOrderId&&o.cloverOrderId!=='null')acts.push(`<button class="btn btn-outline btn-sm" onclick="window.open('${cloverBase2}/orders/${o.cloverOrderId}','_blank')">🍀 Open in Clover</button>`);
+    }
+    if(o.status==='delivered'){
+      const cloverBase3=state.settings.env==='production'?'https://www.clover.com':'https://sandbox.dev.clover.com';
+      if(o.cloverOrderId&&o.cloverOrderId!=='null')acts.push(`<button class="btn btn-outline btn-sm" onclick="window.open('${cloverBase3}/orders/${o.cloverOrderId}','_blank')">🍀 Open in Clover</button>`);
     }
     if(o.cloverOrderId&&o.cloverOrderId!=='null'){
       const cloverBase=state.settings.env==='production'?'https://www.clover.com':'https://sandbox.dev.clover.com';
@@ -2000,7 +2115,10 @@ function renderDashboard(){
       ${o.rescheduleNote?`<div class="reschedule-note">🔄 ${o.rescheduleNote}${o.rescheduleDate?' · Est: '+o.rescheduleDate:''}</div>`:''}
       ${o.cloverError?`<div class="danger-txt mt">⚠ Clover push failed: ${o.cloverError}</div>`:''}
       ${o.editedAt?`<div class="sm" style="color:#aaa;">⚙ Edited: ${new Date(o.editedAt).toLocaleString()}</div>`:''}
+      ${o.paidAt?`<div class="sm" style="color:#2563eb;">💳 Paid: ${new Date(o.paidAt).toLocaleString()}</div>`:''}
       ${o.printedAt?`<div class="sm" style="color:#2563eb;">🖨 Ticket printed: ${new Date(o.printedAt).toLocaleString()}</div>`:''}
+      ${o.deliveredAt?`<div class="sm" style="color:var(--success);">🚚 Delivered: ${new Date(o.deliveredAt).toLocaleString()}</div>`:''}
+      ${o.receiptPref?`<div class="sm" style="color:#888;">📬 Receipt: ${o.receiptPref==='email'?'Email':o.receiptPref==='text'?'Text':'None requested'}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -2263,6 +2381,70 @@ function openCustomerProfile(phone){
     el('cust-lookup-result').innerHTML=`<div class="cust-found"><div class="cust-found-title">✓ ${cust.firstName} loaded from customer history</div></div>`;
     showToast('Customer loaded — ready to place order!');
   },300);
+}
+
+
+// ══ MARK PAID ══
+function markPaid(orderId){
+  const o=state.orders.find(x=>x.id===orderId);
+  if(!o)return;
+  // Open Clover to process payment
+  chargeNowClover(orderId);
+  // Ask print now or later
+  setTimeout(()=>{
+    o.status='paid';
+    o.paidAt=new Date().toISOString();
+    save();renderDashboard();updateBadge();
+    showPrintPrompt(orderId);
+  },500);
+}
+
+// ══ PRINT NOW OR LATER PROMPT ══
+function showPrintPrompt(orderId){
+  const o=state.orders.find(x=>x.id===orderId);
+  if(!o)return;
+  el('print-prompt-overlay').style.display='flex';
+  el('print-prompt-name').textContent=o.customer.firstName+' '+o.customer.lastName;
+  el('print-prompt-total').textContent=fmt(o.total);
+  state.activePrintId=orderId;
+}
+
+function printNow(){
+  el('print-prompt-overlay').style.display='none';
+  openTicket(state.activePrintId);
+}
+
+function printLater(){
+  el('print-prompt-overlay').style.display='none';
+  showToast('Ticket saved — print when ready from the order card.');
+}
+
+// ══ MARK DELIVERED ══
+function markDelivered(orderId){
+  const o=state.orders.find(x=>x.id===orderId);
+  if(!o||!confirm('Mark order '+orderId+' as DELIVERED? This confirms the driver has completed the delivery.'))return;
+  o.status='delivered';
+  o.deliveredAt=new Date().toISOString();
+  save();renderDashboard();updateBadge();
+  showToast('Order '+orderId+' marked as delivered! 🚚');
+}
+
+// ══ THANK YOU POPUP ══
+function showThankYouPopup(orderData){
+  el('thankyou-overlay').style.display='flex';
+}
+function closeThankYou(){
+  el('thankyou-overlay').style.display='none';
+}
+
+// ══ RECEIPT PREFERENCE ══
+function setReceiptPref(pref){
+  if(state.pendingReceiptOrderId){
+    const o=state.orders.find(x=>x.id===state.pendingReceiptOrderId);
+    if(o){o.receiptPref=pref;save();}
+  }
+  closeThankYou();
+  showToast(pref==='none'?'Order placed!':pref==='email'?'Receipt will be emailed after payment.':'Receipt will be texted after payment.');
 }
 
 function clearOrders(){if(!state.orders.length||!confirm('Clear all order history?'))return;state.orders=[];save();renderDashboard();updateBadge();}
