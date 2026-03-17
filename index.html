@@ -263,6 +263,18 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
 .modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#bbb;}
 .modal-close:hover{color:var(--charcoal);}
 
+/* PIN SCREEN */
+.pin-overlay{position:fixed;inset:0;background:#1a1a1a;z-index:9000;display:flex;align-items:center;justify-content:center;}
+.pin-box{background:#fff;border-radius:16px;padding:2.5rem 2rem;max-width:340px;width:92%;text-align:center;box-shadow:0 12px 60px rgba(0,0,0,.4);}
+.pin-dots{display:flex;justify-content:center;gap:.75rem;margin:1.25rem 0;}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--mist);background:transparent;transition:background .15s;}
+.pin-dot.filled{background:var(--teal);border-color:var(--teal);}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.75rem;}
+.pin-btn{font-family:'Lato',sans-serif;font-size:1.3rem;font-weight:700;background:var(--cream);border:1.5px solid var(--mist);border-radius:10px;padding:.85rem;cursor:pointer;transition:all .15s;}
+.pin-btn:hover{background:var(--teal-pale);border-color:var(--teal);}
+.pin-btn.pin-clear{font-size:.8rem;background:#fdecea;border-color:#f0b0aa;color:var(--danger);}
+.pin-err{color:var(--danger);font-size:.82rem;margin-top:.5rem;min-height:1.2rem;}
+
 /* TOAST */
 #toast{position:fixed;bottom:2rem;right:2rem;background:var(--charcoal);color:#fff;font-family:'Lato',sans-serif;font-size:.82rem;font-weight:700;padding:.8rem 1.4rem;border-radius:var(--radius);box-shadow:var(--shadow-lg);transform:translateY(120%);opacity:0;transition:transform .3s,opacity .3s;z-index:9999;max-width:320px;}
 #toast.show{transform:translateY(0);opacity:1;}
@@ -365,6 +377,17 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
       <button class="btn btn-teal" onclick="loadCloverInventory()">Load Products from Clover</button>
       <span class="sm" id="catalog-status"></span>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔐 Staff Access PINs</div>
+    <p class="sm mb">Staff PIN is used when accessing the dashboard from a desktop or non-Clover device. Admin PIN is for you only — required to change settings.</p>
+    <div style="background:#fff8e0;border:1px solid #f0d070;border-radius:var(--radius);padding:.85rem 1rem;margin-bottom:1rem;">
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7a5800;margin-bottom:.25rem;">Default PINs (change immediately!)</div>
+      <div class="sm" style="color:#7a5800;">Staff PIN: <strong>1234</strong> · Admin PIN: <strong>9999</strong></div>
+    </div>
+    <button class="btn btn-teal" onclick="openModal('modal-pin')">🔐 Change PINs</button>
+    <div class="sm mt">Admin PIN is required to make changes. Keep it secret — don't share with staff.</div>
   </div>
 
   <div class="card">
@@ -852,6 +875,55 @@ hr.soft{border:none;border-top:1px solid var(--mist);margin:1rem 0;}
   </div>
 </div>
 
+<!-- PIN SCREEN -->
+<div id="pin-overlay" class="pin-overlay" style="display:none;">
+  <div class="pin-box">
+    <div style="font-size:2rem;margin-bottom:.5rem;">🌿</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;margin-bottom:.25rem;">Staff Access</div>
+    <div class="sm" id="pin-label" style="color:var(--text-light);margin-bottom:.5rem;">Enter your staff PIN to continue</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn pin-clear" onclick="pinClear()">Clear</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn pin-clear" onclick="pinBackspace()">⌫</button>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+    <div class="sm" style="margin-top:.75rem;color:#ccc;">Forgot PIN? Launch from your Clover dashboard.</div>
+  </div>
+</div>
+
+<!-- PIN CHANGE MODAL -->
+<div id="modal-pin" class="overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-pin')">✕</button>
+    <h2>🔐 Change PIN</h2>
+    <p class="sm mb">Enter your current Admin PIN to make changes.</p>
+    <div class="field"><label>Current Admin PIN</label><input id="current-admin-pin" type="password" maxlength="6" placeholder="••••"/></div>
+    <hr class="soft"/>
+    <div class="field"><label>New Staff PIN</label><input id="new-staff-pin" type="password" maxlength="6" placeholder="4 digits"/></div>
+    <div class="field"><label>New Admin PIN</label><input id="new-admin-pin" type="password" maxlength="6" placeholder="4 digits — keep this secret!"/></div>
+    <div id="pin-change-err" class="danger-txt" style="display:none;">Incorrect Admin PIN.</div>
+    <div class="modal-acts">
+      <button class="btn btn-outline" onclick="closeModal('modal-pin')">Cancel</button>
+      <button class="btn btn-teal" onclick="savePinChanges()">Save PINs</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════
 // CONSTANTS
@@ -932,13 +1004,39 @@ function load(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  // ── OAUTH GATE: Block direct URL access ──
+  // ── ACCESS CONTROL ──
   const gateParams=new URLSearchParams(window.location.search);
   const gateHash=new URLSearchParams(window.location.hash.replace('#',''));
   const hasMerchant=gateParams.get('merchant_id')||gateHash.get('merchant_id');
   const hasToken=gateHash.get('access_token');
   const hasSavedCreds=localStorage.getItem('ccc_v3')&&JSON.parse(localStorage.getItem('ccc_v3')||'{}')?.settings?.merchantId;
-  if(!hasMerchant&&!hasToken&&!hasSavedCreds){
+  const isCustomerMode=gateParams.get('mode')==='customer'||gateParams.get('customer')==='1';
+  const isReferredFromWebsite=document.referrer&&(document.referrer.includes('carterscountrycorner')||document.referrer.includes('cartersgardencenter')||document.referrer.includes('godaddy'));
+
+  // Customer mode — show only ordering interface
+  if(isCustomerMode||isReferredFromWebsite){
+    // Hide all staff tabs and panels
+    document.addEventListener('DOMContentLoaded',()=>{
+      // Hide staff tabs
+      ['tbtn-settings','tbtn-zip','tbtn-history','tbtn-dashboard','tbtn-schedule'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.style.display='none';
+      });
+      // Hide staff panels
+      ['panel-settings','panel-zip','panel-history','panel-dashboard','panel-schedule'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.style.display='none';
+      });
+      // Show only order panel
+      const orderPanel=document.getElementById('panel-order');
+      const orderBtn=document.getElementById('tbtn-order');
+      if(orderPanel)orderPanel.classList.add('active');
+      if(orderBtn)orderBtn.classList.add('active');
+    });
+    sessionStorage.setItem('customerMode','1');
+  }
+  // Staff mode — requires Clover OAuth
+  else if(!hasMerchant&&!hasToken&&!hasSavedCreds){
     document.body.innerHTML=`
       <div style="min-height:100vh;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-family:'Lato',sans-serif;">
         <div style="text-align:center;color:#fff;padding:3rem 2rem;max-width:400px;">
@@ -955,9 +1053,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(window.location.search);
   const hash=new URLSearchParams(window.location.hash.replace('#',''));
   if(params.get('merchant_id')&&!state.settings.merchantId){state.settings.merchantId=params.get('merchant_id');save();}
+  if(params.get('merchant_id')||gateHash.get('access_token'))sessionStorage.setItem('cloverAuthed','1');
   if(hash.get('access_token')&&!state.settings.apiToken){state.settings.apiToken=hash.get('access_token');save();}
   applySettings();
   applyLogo();
+  checkPinRequired();
   renderZipTable();
   renderCart();
   renderCalendar();
@@ -996,6 +1096,9 @@ function closeModal(id){el(id).classList.remove('open');}
 function toggleCallText(){el('call-before-text').style.display=el('chargeNotif').value==='call'?'block':'none';}
 
 function switchTab(name,btn){
+  // Block staff tabs in customer mode
+  const staffTabs=['settings','zip','history','dashboard','schedule'];
+  if(sessionStorage.getItem('customerMode')==='1'&&staffTabs.includes(name))return;
   ['settings','zip','order','schedule','history','dashboard'].forEach(n=>{
     el('panel-'+n).classList.remove('active');
     el('tbtn-'+n).classList.remove('active');
@@ -2447,6 +2550,86 @@ function setReceiptPref(pref){
   showToast(pref==='none'?'Order placed!':pref==='email'?'Receipt will be emailed after payment.':'Receipt will be texted after payment.');
 }
 
+
+// ══ PIN SYSTEM ══
+const DEFAULT_STAFF_PIN = '1234';
+const DEFAULT_ADMIN_PIN = '9999';
+let pinBuffer = '';
+let pinMode = 'staff'; // 'staff' or 'admin'
+
+function getStaffPin(){return state.settings.staffPin||DEFAULT_STAFF_PIN;}
+function getAdminPin(){return state.settings.adminPin||DEFAULT_ADMIN_PIN;}
+
+function checkPinRequired(){
+  // No PIN needed in customer mode
+  if(sessionStorage.getItem('customerMode')==='1')return;
+  // No PIN needed if came through Clover OAuth this session
+  if(sessionStorage.getItem('cloverAuthed')==='1')return;
+  // No PIN needed if already PIN-authed this session
+  if(sessionStorage.getItem('pinAuthed')==='1')return;
+  // Show PIN screen
+  showPinScreen();
+}
+
+function showPinScreen(){
+  pinBuffer='';
+  updatePinDots();
+  el('pin-err').textContent='';
+  el('pin-label').textContent='Enter your staff PIN to continue';
+  el('pin-overlay').style.display='flex';
+}
+
+function pinPress(digit){
+  if(pinBuffer.length>=6)return;
+  pinBuffer+=digit;
+  updatePinDots();
+  if(pinBuffer.length===4||pinBuffer.length===6)checkPin();
+}
+
+function pinClear(){pinBuffer='';updatePinDots();el('pin-err').textContent='';}
+function pinBackspace(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const dot=el('pd'+i);
+    if(dot)dot.className='pin-dot'+(i<pinBuffer.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  if(pinBuffer===getStaffPin()||pinBuffer===getAdminPin()){
+    // Correct PIN
+    sessionStorage.setItem('pinAuthed','1');
+    if(pinBuffer===getAdminPin())sessionStorage.setItem('adminAuthed','1');
+    el('pin-overlay').style.display='none';
+    pinBuffer='';
+    updatePinDots();
+    showToast('Welcome! ✅');
+  } else if(pinBuffer.length>=4){
+    el('pin-err').textContent='Incorrect PIN. Please try again.';
+    setTimeout(()=>{pinBuffer='';updatePinDots();el('pin-err').textContent='';},1000);
+  }
+}
+
+function savePinChanges(){
+  const currentAdmin=el('current-admin-pin').value;
+  if(currentAdmin!==getAdminPin()){
+    el('pin-change-err').style.display='block';
+    return;
+  }
+  el('pin-change-err').style.display='none';
+  const newStaff=el('new-staff-pin').value;
+  const newAdmin=el('new-admin-pin').value;
+  if(newStaff&&newStaff.length>=4)state.settings.staffPin=newStaff;
+  if(newAdmin&&newAdmin.length>=4)state.settings.adminPin=newAdmin;
+  save();
+  closeModal('modal-pin');
+  showToast('PINs updated! ✅');
+  setv('current-admin-pin','');
+  setv('new-staff-pin','');
+  setv('new-admin-pin','');
+}
+
 function clearOrders(){if(!state.orders.length||!confirm('Clear all order history?'))return;state.orders=[];save();renderDashboard();updateBadge();}
 
 // EMAIL DIGEST
@@ -2517,3 +2700,4 @@ setTimeout(checkMorningDigest,3000);
 </script>
 </body>
 </html>
+.
